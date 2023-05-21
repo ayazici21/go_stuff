@@ -6,23 +6,26 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"taskManager/db"
 )
 
 var input = bufio.NewReader(os.Stdin)
-var curId = 0
 
-type task struct {
-	id          int
-	title       string
-	description string
-	status      bool
+type Task struct {
+	Id          int    `bson:"task_id" json:"id"`
+	Title       string `bson:"title" json:"title"`
+	Description string `bson:"description" json:"description"`
+	Status      bool   `bson:"status" json:"status"`
 }
 
-var tasks = make(map[int]task)
+func NewTask(title string, desc string) (tsk *Task) {
+	db.Counter++
+	return &Task{db.Counter, title, desc, false}
+}
 
-func printTask(tsk task) {
+func (tsk *Task) printTask() {
 	status := "Pending"
-	if tsk.status {
+	if tsk.Status {
 		status = "Completed"
 	}
 
@@ -30,7 +33,7 @@ func printTask(tsk task) {
 		"Task ID: %d\n"+
 			"Title: %s\n"+
 			"Description: %s\n"+
-			"Status: %s\n", tsk.id, tsk.title, tsk.description, status,
+			"Status: %s\n", tsk.Id, tsk.Title, tsk.Description, status,
 	)
 }
 
@@ -80,9 +83,8 @@ func AddTask() {
 		return
 	}
 
-	curId++
-	tasks[curId] = task{curId, strings.TrimSpace(title),
-		strings.TrimSpace(desc), false}
+	tsk := NewTask(title, desc)
+	db.InsertItem(tsk)
 
 	fmt.Println("Task added successfully.\n")
 }
@@ -99,13 +101,14 @@ func DeleteTask() {
 		fmt.Println("Die")
 		return
 	}
-	_, ok := tasks[taskId]
-	if !ok {
-		fmt.Println("Die")
+
+	_, err = db.RemoveItemWithID(taskId)
+
+	if err != nil {
+		fmt.Printf("Could not delete item with id %d from the database", taskId)
 		return
 	}
 
-	delete(tasks, taskId)
 	fmt.Println("Task deleted successfully!")
 }
 
@@ -121,11 +124,9 @@ func CompleteTask() {
 		fmt.Println("Die")
 		return
 	}
+	_, err = db.CompleteTaskWithId(taskId)
 
-	task, ok := tasks[taskId]
-	if ok {
-		task.status = true
-		tasks[taskId] = task
+	if err == nil {
 		fmt.Println("Task marked completed successfully!")
 		return
 	}
@@ -133,15 +134,11 @@ func CompleteTask() {
 	fmt.Println("An error occurred because of your incompetence.")
 }
 
-func ViewTasks() {
-	if len(tasks) == 0 {
-		fmt.Println("No tasks found!")
-		return
+func ViewTasks() { // TODO: fix this
+	for _, tsk := range db.ReturnAllTasks() {
+		task, ok := tsk.(Task)
+		if ok {
+			task.printTask()
+		}
 	}
-
-	fmt.Println("Tasks:\n")
-	for _, task := range tasks {
-		printTask(task)
-	}
-	fmt.Println()
 }

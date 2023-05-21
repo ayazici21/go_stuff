@@ -2,10 +2,17 @@ package main
 
 import (
 	"fmt"
-	"manager"
+	"taskManager/db"
+	"taskManager/manager"
 )
 
+const _URI = "mongodb://localhost:27017"
+
 func main() {
+	db.Connect(_URI)
+
+	defer db.Disconnect()
+
 	for true {
 		choice := manager.DisplayMenu()
 		switch choice {
