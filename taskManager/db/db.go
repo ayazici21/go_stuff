@@ -74,19 +74,12 @@ func CompleteTaskWithId(id int) (*mongo.UpdateResult, error) {
 	return Collection.UpdateOne(context.TODO(), bson.D{{"task_id", id}}, bson.D{{"$set", bson.D{{"status", true}}}})
 }
 
-func ReturnAllTasks() (ret []interface{}) {
+func ReturnAllTasks() *mongo.Cursor {
 	cur, err := Collection.Find(context.TODO(), bson.D{{}})
 	if err != nil {
 		fmt.Println("You don't deserve the tasks")
 		panic(err)
 	}
 
-	err = cur.All(context.TODO(), &ret)
-
-	if err != nil {
-		fmt.Println("You don't deserve the tasks")
-		panic(err)
-	}
-
-	return ret
+	return cur
 }

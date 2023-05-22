@@ -2,7 +2,9 @@ package manager
 
 import (
 	"bufio"
+	"context"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"os"
 	"strconv"
 	"strings"
@@ -12,15 +14,16 @@ import (
 var input = bufio.NewReader(os.Stdin)
 
 type Task struct {
-	Id          int    `bson:"task_id" json:"id"`
-	Title       string `bson:"title" json:"title"`
-	Description string `bson:"description" json:"description"`
-	Status      bool   `bson:"status" json:"status"`
+	Id          primitive.ObjectID `bson:"_id,omitempty" json:"_id"`
+	ID          int                `bson:"task_id" json:"task_id"`
+	Title       string             `bson:"title" json:"title"`
+	Description string             `bson:"description" json:"description"`
+	Status      bool               `bson:"status" json:"status"`
 }
 
 func NewTask(title string, desc string) (tsk *Task) {
 	db.Counter++
-	return &Task{db.Counter, title, desc, false}
+	return &Task{primitive.NewObjectID(), db.Counter, title, desc, false}
 }
 
 func (tsk *Task) printTask() {
@@ -33,7 +36,7 @@ func (tsk *Task) printTask() {
 		"Task ID: %d\n"+
 			"Title: %s\n"+
 			"Description: %s\n"+
-			"Status: %s\n", tsk.Id, tsk.Title, tsk.Description, status,
+			"Status: %s\n", tsk.ID, tsk.Title, tsk.Description, status,
 	)
 }
 
@@ -83,7 +86,7 @@ func AddTask() {
 		return
 	}
 
-	tsk := NewTask(title, desc)
+	tsk := NewTask(strings.TrimSpace(title), strings.TrimSpace(desc))
 	db.InsertItem(tsk)
 
 	fmt.Println("Task added successfully.\n")
@@ -134,11 +137,18 @@ func CompleteTask() {
 	fmt.Println("An error occurred because of your incompetence.")
 }
 
-func ViewTasks() { // TODO: fix this
-	for _, tsk := range db.ReturnAllTasks() {
-		task, ok := tsk.(Task)
-		if ok {
-			task.printTask()
+func ViewTasks() {
+	cur := db.ReturnAllTasks()
+
+	for cur.Next(context.TODO()) {
+		var task Task
+		err := cur.Decode(&task)
+		if err != nil {
+			fmt.Println("You don't deserve this.")
+			panic(err)
 		}
+
+		task.printTask()
+		fmt.Println()
 	}
 }
