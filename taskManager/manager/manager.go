@@ -12,6 +12,7 @@ import (
 )
 
 var input = bufio.NewReader(os.Stdin)
+var filter = 1
 
 type Task struct {
 	Id          primitive.ObjectID `bson:"_id,omitempty" json:"_id"`
@@ -46,7 +47,8 @@ func DisplayMenu() int {
 		"2. View Tasks\n" +
 		"3. Mark a Task as Completed\n" +
 		"4. Delete a Task\n" +
-		"5. Exit\n\n" +
+		"5. Filter Tasks by Status\n" +
+		"6. Exit\n\n" +
 		"Enter your choice: ",
 	)
 
@@ -57,7 +59,7 @@ func DisplayMenu() int {
 			fmt.Println("Please enter one of the options.")
 			return DisplayMenu()
 		}
-		res := strings.Index("12345", line)
+		res := strings.Index("123456", line)
 		if res != -1 {
 			return res
 		}
@@ -138,7 +140,7 @@ func CompleteTask() {
 }
 
 func ViewTasks() {
-	cur := db.ReturnAllTasks()
+	cur := db.ReturnAllTasks(filter)
 
 	for cur.Next(context.TODO()) {
 		var task Task
@@ -151,4 +153,31 @@ func ViewTasks() {
 		task.printTask()
 		fmt.Println()
 	}
+}
+
+func UseFilter() {
+	for true {
+		fmt.Println(
+			"Filter Tasks by Status:\n" +
+				"1: No filter\n" +
+				"2: Pending\n" +
+				"3: Completed\n",
+		)
+
+		filterString, err := input.ReadString('\n')
+		if err != nil {
+			fmt.Println("Try again.")
+			continue
+		}
+
+		f, err := strconv.Atoi(strings.TrimSpace(filterString))
+
+		if err != nil {
+			fmt.Println("You won't break me.")
+			continue
+		}
+		filter = f
+		break
+	}
+
 }

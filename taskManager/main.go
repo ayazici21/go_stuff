@@ -29,6 +29,9 @@ func main() {
 			manager.DeleteTask()
 			break
 		case 4:
+			manager.UseFilter()
+			break
+		case 5:
 			fmt.Println("Thank you for using the Task Manager. Goodbye!")
 			return
 		}

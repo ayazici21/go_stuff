@@ -12,6 +12,12 @@ var Client *mongo.Client
 var Collection *mongo.Collection
 var Counter int
 
+type DB struct {
+	Client     *mongo.Client
+	Database   *mongo.Database
+	EntryCount int
+}
+
 func Connect(_URI string) {
 	cli, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(_URI))
 
@@ -74,8 +80,22 @@ func CompleteTaskWithId(id int) (*mongo.UpdateResult, error) {
 	return Collection.UpdateOne(context.TODO(), bson.D{{"task_id", id}}, bson.D{{"$set", bson.D{{"status", true}}}})
 }
 
-func ReturnAllTasks() *mongo.Cursor {
-	cur, err := Collection.Find(context.TODO(), bson.D{{}})
+func ReturnAllTasks(f int) *mongo.Cursor {
+	var filter bson.D
+	switch f {
+	case 1:
+		filter = bson.D{{}}
+		break
+	case 2:
+		filter = bson.D{{"status", false}}
+		break
+	case 3:
+		filter = bson.D{{"status", true}}
+		break
+
+	}
+
+	cur, err := Collection.Find(context.TODO(), filter)
 	if err != nil {
 		fmt.Println("You don't deserve the tasks")
 		panic(err)
