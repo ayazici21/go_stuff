@@ -1,17 +1,13 @@
 package manager
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"os"
-	"strconv"
-	"strings"
 	"taskManager/db"
+	"taskManager/util"
 )
 
-var input = bufio.NewReader(os.Stdin)
 var filter = 1
 
 type Task struct {
@@ -22,7 +18,7 @@ type Task struct {
 	Status      bool               `bson:"status" json:"status"`
 }
 
-func NewTask(title string, desc string) (tsk *Task) {
+func NewTask(title string, desc string) *Task {
 	db.Counter++
 	return &Task{primitive.NewObjectID(), db.Counter, title, desc, false}
 }
@@ -41,67 +37,35 @@ func (tsk *Task) printTask() {
 	)
 }
 
-func DisplayMenu() int {
-	fmt.Print("Menu:\n" +
-		"1. Add a Task\n" +
-		"2. View Tasks\n" +
-		"3. Mark a Task as Completed\n" +
-		"4. Delete a Task\n" +
-		"5. Filter Tasks by Status\n" +
-		"6. Exit\n\n" +
-		"Enter your choice: ",
-	)
-
-	line, err := input.ReadString('\n')
-	if err == nil {
-		line = strings.TrimSpace(line)
-		if len(line) != 1 {
-			fmt.Println("Please enter one of the options.")
-			return DisplayMenu()
-		}
-		res := strings.Index("123456", line)
-		if res != -1 {
-			return res
-		}
-		fmt.Println("Please enter one of the options.")
-		return DisplayMenu()
-	}
-
-	fmt.Println("You cannot escape your fate. Please enter one of the options.")
-	return DisplayMenu()
-}
-
 func AddTask() {
-	fmt.Print("Enter the title of the task: ")
-	title, err := input.ReadString('\n')
+	title, err := util.GetString("Enter the title of the task: ")
 
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	fmt.Print("Enter the description of the task: ")
-	desc, err := input.ReadString('\n')
+	desc, err := util.GetString("Enter the description of the task: ")
 
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	tsk := NewTask(strings.TrimSpace(title), strings.TrimSpace(desc))
-	db.InsertItem(tsk)
+	tsk := NewTask(title, desc)
+	_, err = db.InsertItem(tsk)
 
-	fmt.Println("Task added successfully.\n")
+	if err != nil {
+		fmt.Println("Something happened.")
+		return
+	}
+
+	fmt.Println("Task added successfully.")
 }
 
 func DeleteTask() {
-	fmt.Println("Which task do you want to delete? ")
-	s_taskId, err := input.ReadString('\n')
-	if err != nil {
-		fmt.Println("Die")
-		return
-	}
-	taskId, err := strconv.Atoi(strings.TrimSpace(s_taskId))
+	taskId, err := util.GetInt("Which task do you want to delete? ")
+
 	if err != nil {
 		fmt.Println("Die")
 		return
@@ -118,17 +82,13 @@ func DeleteTask() {
 }
 
 func CompleteTask() {
-	fmt.Println("Which task do you want to complete? ")
-	s_taskId, err := input.ReadString('\n')
+	taskId, err := util.GetInt("Which task do you want to mark completed? ")
+
 	if err != nil {
 		fmt.Println("Die")
 		return
 	}
-	taskId, err := strconv.Atoi(strings.TrimSpace(s_taskId))
-	if err != nil {
-		fmt.Println("Die")
-		return
-	}
+
 	_, err = db.CompleteTaskWithId(taskId)
 
 	if err == nil {
@@ -156,26 +116,19 @@ func ViewTasks() {
 }
 
 func UseFilter() {
-	for true {
-		fmt.Println(
-			"Filter Tasks by Status:\n" +
-				"1: No filter\n" +
-				"2: Pending\n" +
-				"3: Completed\n",
-		)
+	for {
+		f, err := util.GetInt(`Filter Tasks by Status:
+1: No filter
+2: Pending
+3: Completed
 
-		filterString, err := input.ReadString('\n')
-		if err != nil {
-			fmt.Println("Try again.")
-			continue
-		}
-
-		f, err := strconv.Atoi(strings.TrimSpace(filterString))
+Enter your choice: `)
 
 		if err != nil {
 			fmt.Println("You won't break me.")
 			continue
 		}
+
 		filter = f
 		break
 	}

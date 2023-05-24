@@ -63,13 +63,8 @@ func Disconnect() {
 	}
 }
 
-func InsertItem(doc interface{}) *mongo.InsertOneResult {
-	res, err := Collection.InsertOne(context.TODO(), doc)
-	if err != nil {
-		fmt.Println("Could not insert item to the database.")
-		return nil
-	}
-	return res
+func InsertItem(it interface{}) (*mongo.InsertOneResult, error) {
+	return Collection.InsertOne(context.TODO(), it)
 }
 
 func RemoveItemWithID(id int) (*mongo.DeleteResult, error) {
