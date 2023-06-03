@@ -34,6 +34,12 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var taskIDs = new Set();
+var cards;
+window.onload = function () {
+    cards = document.getElementById("cards");
+    viewTasks();
+};
 function viewTasks() {
     return __awaiter(this, void 0, void 0, function () {
         var tasks;
@@ -65,6 +71,7 @@ function viewTasks() {
 }
 function createCardFromTask(task) {
     var div = document.createElement("div");
+    div.setAttribute("id", task["_id"]);
     var card = document.createElement("div");
     card.classList.add("uk-card", "uk-card-default", "uk-card-hover", "uk-padding-small");
     //card.setAttribute("uk-grid", "")
@@ -81,23 +88,44 @@ function createCardFromTask(task) {
     body.appendChild(status);
     var completeTaskButton = document.createElement("button");
     completeTaskButton.setAttribute("uk-icon", "check");
-    // completeTaskButton.onclick(() => fetch())
+    completeTaskButton.setAttribute("ratio", "2");
+    completeTaskButton.setAttribute("id", task["_id"]);
+    completeTaskButton.onclick = function (event) { return completeTaskEvent(div); };
     body.appendChild(completeTaskButton);
     var deleteTaskButton = document.createElement("button");
     deleteTaskButton.setAttribute("uk-icon", "trash");
-    // deleteTaskButton.onclick(() => fetch())
+    deleteTaskButton.setAttribute("ratio", "2");
+    deleteTaskButton.setAttribute("id", task["_id"]);
+    deleteTaskButton.onclick = deleteTaskEvent;
     body.appendChild(deleteTaskButton);
     card.appendChild(title);
     card.appendChild(body);
     div.appendChild(card);
     cards.appendChild(div);
 }
-var taskIDs = new Set();
-var cards;
-window.onload = function () {
-    var elem = document.getElementById("cards");
-    if (elem != null) {
-        cards = elem;
-    }
-    viewTasks();
-};
+function completeTaskEvent(caller) {
+    return __awaiter(this, void 0, void 0, function () {
+        var task_id;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    task_id = caller.getAttribute("id");
+                    return [4 /*yield*/, fetch("http://127.0.0.1:3131/task/" + task_id, { method: "PUT" })
+                            .then(function (response) {
+                            if (response.ok) {
+                                console.log("OK");
+                            }
+                            else {
+                                console.log(response);
+                            }
+                        })];
+                case 1:
+                    _a.sent();
+                    return [2 /*return*/];
+            }
+        });
+    });
+}
+function deleteTaskEvent(event) {
+    return;
+}

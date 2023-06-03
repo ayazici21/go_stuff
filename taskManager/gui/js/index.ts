@@ -1,4 +1,10 @@
+var taskIDs = new Set<String>()
+var cards: HTMLElement;
 
+window.onload = () => {
+  cards = document.getElementById("cards")!;
+  viewTasks()
+}
 
 async function viewTasks() {
   let tasks = await fetch("http://127.0.0.1:3131/tasks")
@@ -16,14 +22,13 @@ async function viewTasks() {
       }
       taskIDs.add(task["_id"])
       createCardFromTask(task)
-
     });
   })
 }
 
 function createCardFromTask(task: string) {
   let div = document.createElement("div")
-
+  div.setAttribute("id", task["_id"])
   let card = document.createElement("div")
   card.classList.add("uk-card", "uk-card-default", "uk-card-hover", "uk-padding-small")
   //card.setAttribute("uk-grid", "")
@@ -43,14 +48,21 @@ function createCardFromTask(task: string) {
   status.appendChild(document.createTextNode("Status: " + (task["status"] ? "Completed" : "Pending")))
   body.appendChild(status)
 
-  let completeTaskButton = document.createElement("button")
+  let completeTaskButton: HTMLButtonElement = document.createElement("button")
+
   completeTaskButton.setAttribute("uk-icon", "check")
-  // completeTaskButton.onclick(() => fetch())
+  completeTaskButton.setAttribute("ratio", "2")
+  completeTaskButton.setAttribute("id", task["_id"])
+  completeTaskButton.onclick = (event) => completeTaskEvent(div)
+
   body.appendChild(completeTaskButton)
   
   let deleteTaskButton = document.createElement("button")
   deleteTaskButton.setAttribute("uk-icon", "trash")
-  // deleteTaskButton.onclick(() => fetch())
+  deleteTaskButton.setAttribute("ratio", "2")
+  deleteTaskButton.setAttribute("id", task["_id"])
+  deleteTaskButton.onclick = deleteTaskEvent
+
   body.appendChild(deleteTaskButton)
 
   card.appendChild(title)
@@ -60,13 +72,22 @@ function createCardFromTask(task: string) {
 
 }
 
-var taskIDs = new Set<String>()
-var cards: HTMLElement;
 
-window.onload = () => {
-  let elem = document.getElementById("cards");
-  if (elem != null) {
-    cards = elem
-  }
-  viewTasks()
+async function completeTaskEvent(caller: HTMLDivElement) {
+    let task_id: string = caller.getAttribute("id")!
+
+    await fetch("http://127.0.0.1:3131/task/" + task_id, {method: "PUT"})
+    .then(response => {
+        if (response.ok) {
+            console.log("OK")
+        } else {
+            console.log(response)
+        }
+    })
+    return
+}
+
+
+function deleteTaskEvent(event: MouseEvent) {
+    return
 }
