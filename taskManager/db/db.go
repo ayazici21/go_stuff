@@ -4,19 +4,14 @@ import (
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"taskManager/logger"
 )
 
 var Client *mongo.Client
 var Collection *mongo.Collection
-var Counter int
-
-type DB struct {
-	Client     *mongo.Client
-	Database   *mongo.Database
-	EntryCount int
-}
 
 func Connect(_URI string) {
 	cli, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(_URI))
@@ -27,38 +22,12 @@ func Connect(_URI string) {
 	}
 	Client = cli
 	Collection = cli.Database("taskManager").Collection("tasks")
-
-	pipeline := []bson.M{ // stolen fr fr
-		{
-			"$group": bson.M{
-				"_id": "",
-				"max": bson.M{"$max": "$task_id"},
-			},
-		},
-	}
-
-	cur, err := Collection.Aggregate(context.TODO(), pipeline)
-	if err != nil {
-		fmt.Println("I'm too tired to handle errors.")
-		panic(err)
-	}
-	var res []bson.M
-	err = cur.All(context.TODO(), &res)
-	if err != nil {
-		fmt.Println("I'm too tired to handle errors.")
-		panic(err)
-	}
-	if len(res) == 0 {
-		Counter = 0
-	} else {
-		Counter = int(res[0]["max"].(int32)) // this is int32 not int 🤓👆
-	}
 }
 
 func Disconnect() {
 	err := Client.Disconnect(context.TODO())
 	if err != nil {
-		fmt.Println("Failed to disconnect from the database:", err.Error())
+		logger.Error("Failed to disconnect from the database: %s", err.Error())
 		panic(err)
 	}
 }
@@ -67,12 +36,12 @@ func InsertItem(it interface{}) (*mongo.InsertOneResult, error) {
 	return Collection.InsertOne(context.TODO(), it)
 }
 
-func RemoveItemWithID(id int) (*mongo.DeleteResult, error) {
-	return Collection.DeleteOne(context.TODO(), bson.D{{"task_id", id}})
+func RemoveItemWithID(id primitive.ObjectID) (*mongo.DeleteResult, error) {
+	return Collection.DeleteOne(context.TODO(), bson.D{{"_id", id}})
 }
 
-func CompleteTaskWithId(id int) (*mongo.UpdateResult, error) {
-	return Collection.UpdateOne(context.TODO(), bson.D{{"task_id", id}}, bson.D{{"$set", bson.D{{"status", true}}}})
+func CompleteTaskWithId(id primitive.ObjectID) (*mongo.UpdateResult, error) {
+	return Collection.UpdateOne(context.TODO(), bson.D{{"_id", id}}, bson.D{{"$set", bson.D{{"status", true}}}})
 }
 
 func ReturnAllTasks(f int) *mongo.Cursor {
@@ -86,14 +55,12 @@ func ReturnAllTasks(f int) *mongo.Cursor {
 		break
 	case 3:
 		filter = bson.D{{"status", true}}
-		break
-
 	}
 
 	cur, err := Collection.Find(context.TODO(), filter)
 	if err != nil {
-		fmt.Println("You don't deserve the tasks")
-		panic(err)
+		logger.Error("You don't deserve the tasks")
+		return nil
 	}
 
 	return cur

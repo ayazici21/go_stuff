@@ -2,61 +2,43 @@ package main
 
 import (
 	"fmt"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"taskManager/db"
+	"taskManager/logger"
 	"taskManager/manager"
-	"taskManager/util"
 )
 
 const _URI = "mongodb://localhost:27017"
 
+func hello(c *fiber.Ctx) error {
+	return c.SendString("Hello World")
+}
+
 func main() {
 	db.Connect(_URI)
+	logger.InitLogger()
 
 	defer db.Disconnect()
 
-	for true {
-		choice := displayMenu()
+	app := fiber.New()
 
-		switch choice {
-		case 1:
-			manager.AddTask()
-			break
-		case 2:
-			manager.ViewTasks()
-			break
-		case 3:
-			manager.CompleteTask()
-			break
-		case 4:
-			manager.DeleteTask()
-			break
-		case 5:
-			manager.UseFilter()
-			break
-		case 6:
-			fmt.Println("Thank you for using the Task Manager. Goodbye!")
-			return
-		}
-	}
-}
+	app.Use(cors.New(cors.Config{
+		AllowHeaders:     "Origin,Content-Type,Accept,Content-Length,Accept-Language,Accept-Encoding,Connection,Access-Control-Allow-Origin",
+		AllowOrigins:     "*",
+		AllowCredentials: true,
+		AllowMethods:     "GET,POST,HEAD,PUT,DELETE,PATCH,OPTIONS",
+	}))
 
-func displayMenu() int {
-	for {
-		num, err := util.GetInt(`Menu:
-1. Add a Task
-2. View Tasks
-3. Mark a Task as Completed
-4. Delete a Task
-5. Filter Tasks by Status
-6. Exit
+	app.Get("/", hello) // for testing
+	app.Get("/tasks", manager.ViewTasks)
+	app.Post("/task", manager.AddTask)
+	app.Put("/task/:id", manager.CompleteTask)
+	app.Delete("/task/:id", manager.DeleteTask)
+	app.Put("/filter/:filter", manager.UseFilter)
 
-Enter your choice: `)
-
-		if err == nil {
-			if num >= 1 && num <= 6 {
-				return num
-			}
-		}
-		fmt.Println("Please enter one of the options.")
+	err := app.Listen(":3131")
+	if err != nil {
+		fmt.Println("Die")
 	}
 }
