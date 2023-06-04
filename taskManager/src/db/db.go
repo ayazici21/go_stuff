@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -17,7 +16,7 @@ func Connect(_URI string) {
 	cli, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(_URI))
 
 	if err != nil {
-		fmt.Println("Failed to connect to the database:", err.Error())
+		logger.Error("Failed to connect to the database: %s", err.Error())
 		panic(err)
 	}
 	Client = cli
@@ -44,7 +43,7 @@ func CompleteTaskWithId(id primitive.ObjectID) (*mongo.UpdateResult, error) {
 	return Collection.UpdateOne(context.TODO(), bson.D{{"_id", id}}, bson.D{{"$set", bson.D{{"status", true}}}})
 }
 
-func ReturnAllTasks(f int) *mongo.Cursor {
+func ReturnAllTasks(f int) (*mongo.Cursor, error) {
 	var filter bson.D
 	switch f {
 	case 1:
@@ -60,8 +59,8 @@ func ReturnAllTasks(f int) *mongo.Cursor {
 	cur, err := Collection.Find(context.TODO(), filter)
 	if err != nil {
 		logger.Error("You don't deserve the tasks")
-		return nil
+		return nil, err
 	}
 
-	return cur
+	return cur, nil
 }

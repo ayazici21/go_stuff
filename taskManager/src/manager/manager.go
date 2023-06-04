@@ -2,7 +2,6 @@ package manager
 
 import (
 	"context"
-	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"strconv"
@@ -32,7 +31,7 @@ func AddTask(c *fiber.Ctx) error {
 	var body taskBody
 	err := c.BodyParser(&body)
 	if err != nil {
-		logger.Error("Body parser returned an error: %s", err.Error())
+		logger.Error("Body parser: %s", err.Error())
 		return c.Status(400).SendString("Could not parse body")
 	}
 
@@ -40,30 +39,31 @@ func AddTask(c *fiber.Ctx) error {
 	_, err = db.InsertItem(tsk)
 
 	if err != nil {
-		fmt.Println("Something happened.")
-		return c.Status(401).SendString("Could not insert the item.")
+		logger.Error("Insert item: %s", err)
+		return c.Status(400).SendString("Could not insert the item.")
 	}
 
-	fmt.Println("Task added successfully.")
+	logger.Info("Task '%s' insert success.", tsk.ID)
 	return c.Status(200).SendString("Task successfully added")
 }
 
 func DeleteTask(c *fiber.Ctx) error {
 	id := c.Params("id")
 	objID, err := primitive.ObjectIDFromHex(id)
+
 	if err != nil {
-		logger.Error("%s is not a valid object ID.", id)
-		return c.Status(402).SendString("Received an invalid ObjectID")
+		logger.Error("Invalid ID: %s", id)
+		return c.Status(400).SendString("Received an invalid ObjectID")
 	}
 
 	_, err = db.RemoveItemWithID(objID)
 
 	if err != nil {
-		logger.Error("Could not delete item with id %s from the database", objID.Hex())
-		return c.Status(401).SendString("Could not delete the item.")
+		logger.Error("Remove item: %s", err.Error())
+		return c.Status(400).SendString("Could not delete the item.")
 	}
 
-	logger.Info("Task with id %s has been deleted.", objID.Hex())
+	logger.Info("Task '%s' remove success.", objID.Hex())
 	return c.Status(200).SendString("Task successfully deleted")
 }
 
@@ -71,28 +71,34 @@ func CompleteTask(c *fiber.Ctx) error {
 	id := c.Params("id")
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		logger.Error("%s is not a valid object ID.", id)
-		return c.Status(402).SendString("Received an invalid ObjectID")
+		logger.Error("Invalid ID: %s", id)
+		return c.Status(400).SendString("Received an invalid ObjectID")
 	}
 	_, err = db.CompleteTaskWithId(objID)
 
 	if err == nil {
-		logger.Info("%s marked completed.", objID.Hex())
+		logger.Info("Task '%s' mark success.", objID.Hex())
 		return c.Status(200).SendString("Task successfully marked completed.")
 	}
 
-	logger.Error("An error occurred because of your incompetence.")
-	return c.Status(401).SendString("Skill issue tbh")
+	logger.Error("Complete task: %s", err.Error())
+	return c.Status(400).SendString("Could not mark the task completed.")
 }
 
 func ViewTasks(c *fiber.Ctx) error {
-	cur := db.ReturnAllTasks(filter)
+	cur, err := db.ReturnAllTasks(filter)
+	if err != nil {
+		logger.Error("Return tasks: %s", err.Error())
+		return c.Status(400).SendString("An error occurred.")
+	}
+
 	tasks := make([]Task, 0)
 	for cur.Next(context.TODO()) {
 		var task Task
 		err := cur.Decode(&task)
 		if err != nil {
-			return c.Status(403).SendString("An error occurred")
+			logger.Error("Decode: %s", err.Error())
+			return c.Status(400).SendString("An error occurred.")
 		}
 
 		tasks = append(tasks, task)
@@ -105,9 +111,10 @@ func UseFilter(c *fiber.Ctx) error {
 
 	if err != nil {
 		logger.Error("An error occurred: %s", err.Error())
-		return c.Status(403).SendString("An error occurred")
+		return c.Status(400).SendString("An error occurred.")
 	}
 
 	filter = f
-	return c.Status(200).SendString("Successfully switched filter")
+	logger.Info("Switched filter to %d", filter)
+	return c.Status(200).SendString("Successfully switched filter.")
 }
