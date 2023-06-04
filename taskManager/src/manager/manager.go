@@ -3,6 +3,7 @@ package manager
 import (
 	"context"
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"strconv"
 	"taskManager/db"
@@ -44,7 +45,7 @@ func AddTask(c *fiber.Ctx) error {
 	}
 
 	logger.Info("Task '%s' insert success.", tsk.ID)
-	return c.Status(200).SendString("Task successfully added")
+	return c.Status(200).JSON(tsk) // send task so it can be easily added in the UI
 }
 
 func DeleteTask(c *fiber.Ctx) error {
@@ -117,4 +118,8 @@ func UseFilter(c *fiber.Ctx) error {
 	filter = f
 	logger.Info("Switched filter to %d", filter)
 	return c.Status(200).SendString("Successfully switched filter.")
+}
+
+func GetFilter(c *fiber.Ctx) error {
+	return c.Status(200).JSON(bson.M{"filter": filter})
 }

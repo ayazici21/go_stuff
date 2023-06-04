@@ -64,6 +64,20 @@ function viewTasks() {
                     })];
                 case 1:
                     tasks = _a.sent();
+                    return [4 /*yield*/, fetch("http://127.0.0.1:3131/filter") // i should probably set filter to 1 every time
+                            .then(function (response) {
+                            if (response.ok) {
+                                return response.json();
+                            }
+                            else {
+                                return 1;
+                            }
+                        }).then(function (data) {
+                            [1, 2, 3].forEach(function (num) { var _a; return (_a = document.getElementById("filter" + num)) === null || _a === void 0 ? void 0 : _a.classList.remove("uk-active"); });
+                            document.getElementById("filter" + data["filter"]).classList.add("uk-active");
+                        })];
+                case 2:
+                    _a.sent();
                     return [2 /*return*/];
             }
         });
@@ -73,8 +87,7 @@ function createCardFromTask(task) {
     var div = document.createElement("div");
     div.setAttribute("id", task["_id"]);
     var card = document.createElement("div");
-    card.classList.add("uk-card", "uk-card-default", "uk-card-hover", "uk-padding-small");
-    //card.setAttribute("uk-grid", "")
+    card.classList.add("uk-card", "uk-card-default", "uk-card-hover", "uk-padding");
     var title = document.createElement("h3");
     title.classList.add("uk-card-title");
     title.appendChild(document.createTextNode(task["title"]));
@@ -85,18 +98,18 @@ function createCardFromTask(task) {
     body.appendChild(desc);
     var status = document.createElement("p");
     status.appendChild(document.createTextNode("Status: " + (task["status"] ? "Completed" : "Pending")));
+    status.setAttribute("id", "status_" + task["_id"]);
+    status.setAttribute("data-status", task["status"]);
     body.appendChild(status);
     var completeTaskButton = document.createElement("button");
     completeTaskButton.setAttribute("uk-icon", "check");
     completeTaskButton.setAttribute("ratio", "2");
-    completeTaskButton.setAttribute("id", task["_id"]);
-    completeTaskButton.onclick = function (event) { return completeTaskEvent(div); };
+    completeTaskButton.onclick = function (event) { return completeTaskEvent(status); };
     body.appendChild(completeTaskButton);
     var deleteTaskButton = document.createElement("button");
     deleteTaskButton.setAttribute("uk-icon", "trash");
     deleteTaskButton.setAttribute("ratio", "2");
-    deleteTaskButton.setAttribute("id", task["_id"]);
-    deleteTaskButton.onclick = deleteTaskEvent;
+    deleteTaskButton.onclick = function (event) { return deleteTaskEvent(div); };
     body.appendChild(deleteTaskButton);
     card.appendChild(title);
     card.appendChild(body);
@@ -109,14 +122,20 @@ function completeTaskEvent(caller) {
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    task_id = caller.getAttribute("id");
+                    task_id = caller.getAttribute("id").substring(7);
+                    if (caller.getAttribute("data-status") == "true") {
+                        // instead of making complete task button disabled, just do nothing for now
+                        console.log("Task already completed");
+                        return [2 /*return*/];
+                    }
                     return [4 /*yield*/, fetch("http://127.0.0.1:3131/task/" + task_id, { method: "PUT" })
                             .then(function (response) {
                             if (response.ok) {
-                                console.log("OK");
+                                // change the status in the UI
+                                caller.textContent = "Status: Completed";
                             }
                             else {
-                                console.log(response);
+                                // TODO: show error
                             }
                         })];
                 case 1:
@@ -126,6 +145,96 @@ function completeTaskEvent(caller) {
         });
     });
 }
-function deleteTaskEvent(event) {
-    return;
+function deleteTaskEvent(caller) {
+    return __awaiter(this, void 0, void 0, function () {
+        var task_id;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    task_id = caller.getAttribute("id");
+                    return [4 /*yield*/, fetch("http://127.0.0.1:3131/task/" + task_id, { method: "DELETE" })
+                            .then(function (response) {
+                            if (response.ok) {
+                                caller.remove();
+                            }
+                            else {
+                                // TODO: show error
+                            }
+                        })];
+                case 1:
+                    _a.sent();
+                    return [2 /*return*/];
+            }
+        });
+    });
+}
+function addTask() {
+    return __awaiter(this, void 0, void 0, function () {
+        var titleField, descField, title, description;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    titleField = document.getElementById("task_title");
+                    descField = document.getElementById("task_desc");
+                    title = titleField.value;
+                    description = descField.value;
+                    if (title.length == 0 || description.length == 0) {
+                        // handle this
+                        return [2 /*return*/];
+                    }
+                    console.log(title);
+                    console.log(description);
+                    console.log(JSON.stringify({
+                        title: title,
+                        description: description
+                    }));
+                    return [4 /*yield*/, fetch("http://127.0.0.1:3131/task", {
+                            method: "POST",
+                            body: JSON.stringify({
+                                title: title,
+                                description: description
+                            }),
+                            headers: { "Content-Type": "application/json" }
+                        }).then(function (response) {
+                            if (response.ok) {
+                                return response.json();
+                            }
+                            else {
+                                // handle error
+                                return null;
+                            }
+                        }).then(function (data) {
+                            if (data == null) {
+                                return;
+                            }
+                            taskIDs.add(data["_id"]);
+                            createCardFromTask(data);
+                        })];
+                case 1:
+                    _a.sent();
+                    return [2 /*return*/];
+            }
+        });
+    });
+}
+function switchFilter(filter) {
+    return __awaiter(this, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, fetch("http://127.0.0.1:3131/filter/" + filter, { method: "PUT" })
+                        .then(function (response) {
+                        if (response.ok) {
+                            cards.replaceChildren();
+                            viewTasks();
+                        }
+                        else {
+                            // TODO: show error
+                        }
+                    })];
+                case 1:
+                    _a.sent();
+                    return [2 /*return*/];
+            }
+        });
+    });
 }

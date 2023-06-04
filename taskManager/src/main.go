@@ -36,6 +36,7 @@ func main() {
 	app.Put("/task/:id", manager.CompleteTask)
 	app.Delete("/task/:id", manager.DeleteTask)
 	app.Put("/filter/:filter", manager.UseFilter)
+	app.Get("/filter", manager.GetFilter)
 
 	err := app.Listen(":3131")
 	if err != nil {
