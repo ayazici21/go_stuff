@@ -13,10 +13,6 @@ import (
 const _URI = "mongodb://localhost:27017"
 
 func routes(app *fiber.App) {
-	app.Get("/", func(ctx *fiber.Ctx) error {
-		return ctx.SendFile("gui/login.html")
-	})
-
 	app.Get("/tasks/*", manager.ViewTasks)
 	app.Post("/task", manager.AddTask)
 	app.Put("/task/:id", manager.CompleteTask)
